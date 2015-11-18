@@ -22,10 +22,18 @@ class Grid: CCNodeColor {
     var noTile: Tile? = nil
     
     let startTiles = 2
+        
+    //an array that stores all the values
+    var valuesArray = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4]
+    var randomIndex = 19        //assign randomIndex at least some numbers or it will not work
     
-    let winTile = 2048
+    //create an array that store all the final values
+    var arrayInArray = [[Int]] ()
     
-    var score: Int = 0 {
+    //score system:
+    var count = 0
+    
+    var score: Int = 100 {
         didSet {
             var mainScene = parent as! MainScene
             mainScene.scoreLabel.string = "\(score)"
@@ -98,6 +106,7 @@ class Grid: CCNodeColor {
         let tile = CCBReader.load("Tile") as! Tile          //load the tile by loading the CCB file and storing it in a local variable
         gridArray[column][row] = tile            //store this tile in the grid array
         tile.scale = 0          //set the scale of the tile to 0 because we want the tile to appear with a scale up animation
+        tile.value = generateRandomValues(tile)
         addChild(tile)          //add the child to the grid
         tile.position = positionForColumn(column, row: row)         //define the position
         let delay = CCActionDelay(duration: 0.3)            //create an action sequence that forms a spawn animation
@@ -106,6 +115,18 @@ class Grid: CCNodeColor {
         tile.runAction(sequence)
     }
     
+    func generateRandomValues(theNumberInTile: Tile)-> Int{
+        //sudoku versions to generate random numbers from 1 - 4
+        do {
+            randomIndex = Int(arc4random_uniform(UInt32(valuesArray.count)))
+            theNumberInTile.value = valuesArray[randomIndex]
+        } while theNumberInTile.value == 0
+
+        //after being used in 2048, remove it
+        valuesArray[randomIndex] = 0
+        return theNumberInTile.value
+    }
+
     //Spawning a random tile
     //determine a random free position on the grid to spawn a new tile
     //having a loop that continues generating a random tile index until it finds a free position on the grid
@@ -124,7 +145,7 @@ class Grid: CCNodeColor {
     
     //Spawn multiple start tiles
     func spawnStartTiles() {
-        for _ in 0..<startTiles {   //starttiles = 2, less than 2 will keep loop
+        for _ in 0..<startTiles {   //starttiles = 2, if only 1 start tile will keep loop to generate the 2nd tile
             spawnRandomTile()
         }
     }
@@ -255,7 +276,7 @@ class Grid: CCNodeColor {
             }
         }
         if !movePossible() {
-            lose()
+            endTheGame()
         }
     }
     
@@ -293,7 +314,7 @@ class Grid: CCNodeColor {
         // Update game data
         let mergedTile = gridArray[x][y]!
         let otherTile = gridArray[otherX][otherY]!
-        score += mergedTile.value + otherTile.value
+        score--
 
         otherTile.mergedThisRound = true
         
@@ -301,34 +322,149 @@ class Grid: CCNodeColor {
         
         // Update the UI
         var otherTilePosition = positionForColumn(otherX, row: otherY)
-        let moveTo = CCActionMoveTo(duration:0.2, position: otherTilePosition)
+        let moveTo = CCActionMoveTo(duration:0.15, position: otherTilePosition)
         let remove = CCActionRemove()
         let mergeTile = CCActionCallBlock(block: { () -> Void in
-            otherTile.value *= 2
+            //tile value do not change
+            otherTile.value = otherTile.value
         })
-        var checkWin = CCActionCallBlock(block: { () -> Void in
-            if otherTile.value == self.winTile {self.win()}
-        })
-          let sequence = CCActionSequence(array: [moveTo, mergeTile, checkWin, remove])
+        
+        //append the number back once has been merge
+        valuesArray.append(otherTile.value)
+        //add a loop function here to delete any values in the array that is 0
+        deleteAnyValueThatIsZero()
+        
+        let sequence = CCActionSequence(array: [moveTo, mergeTile, remove])
         mergedTile.runAction(sequence)
+    }
+    
+    func deleteAnyValueThatIsZero() {
+        for var i = 0; i < valuesArray.count; i++ {
+            if valuesArray[i] == 0{
+                valuesArray.removeAtIndex(i)
+            }
+        }
     }
     
     func win() {
         endGameWithMessage("You win!")
     }
     
-    func lose() {
-        endGameWithMessage("You lose! :(")
+    func endTheGame() {
+        if checkSudokuWin() == true {
+            win()
+        } else {
+            if count == 17 {
+                score -= 20
+            }
+            if count == 18 {
+                score -= 30
+            }else{
+                score -= 45
+            }
+            endGameWithMessage("You lose! :(")
+        }
     }
     
     func endGameWithMessage(message: String) {
         println(message)
         let defaults = NSUserDefaults.standardUserDefaults()
         let highscore = defaults.integerForKey("highscore")
+        
         if score > highscore {
             defaults.setInteger(score, forKey: "highscore")
             defaults.synchronize()
         }
+    }
+    
+//    //this function store 8 arrays in an array called arrayInArray
+//    func generate8GridArrays() {
+//        for var j = 0; j < gridSize; j++ {
+//            for var i = 0; i < gridSize; i++ {
+//                var tile = gridArray [i][j]
+//                var finalCheckArray = [Int]()
+//                finalCheckArray.append(tile!.value)
+//                arrayInArray.append(finalCheckArray)
+//            }
+//        }
+//    }
+    
+    //this function loop each
+    func checkSudokuWin() ->Bool {
+        //return value
+        var win = true
+        
+            for j in 0..<gridSize {
+                var countone = 0
+                var counttwo = 0
+                var countthree = 0
+                var countfour = 0
+                for i in 0..<gridSize{
+                    var tile = gridArray [i][j]
+                    if tile!.value == 1 {
+                        countone++
+                        println(tile!.value)
+                    }
+                    
+                    if tile!.value == 2 {
+                        counttwo++
+                        println(tile!.value)
+                    }
+                    
+                    if tile!.value == 3{
+                        countthree++
+                        println(tile!.value)
+                    }
+                    
+                    if tile!.value == 4{
+                        countfour++
+                        println(tile!.value)
+                    }
+                    
+                }
+                if countone > 1 || counttwo > 1 || countthree > 1 || countfour > 1 {
+                    win = false
+                }
+                println("one line")
+            }
+        
+        
+        for j in 0..<gridSize {
+            var countone = 0
+            var counttwo = 0
+            var countthree = 0
+            var countfour = 0
+            for i in 0..<gridSize{
+                var tile = gridArray [j][i]
+                if tile!.value == 1 {
+                    countone++
+                    println(tile!.value)
+                }
+                
+                if tile!.value == 2 {
+                    counttwo++
+                    println(tile!.value)
+                }
+                
+                if tile!.value == 3{
+                    countthree++
+                    println(tile!.value)
+                }
+                
+                if tile!.value == 4{
+                    countfour++
+                    println(tile!.value)
+                }
+                
+            }
+            if countone > 1 || counttwo > 1 || countthree > 1 || countfour > 1 {
+                win = false
+            }
+            println("one line")
+        }
+
+
+        return win
     }
     
     func movePossible() -> Bool {

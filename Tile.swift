@@ -12,6 +12,8 @@ class Tile: CCNode {
     weak var valueLabel: CCLabelTTF!
     weak var backgroundNode: CCNodeColor!
     var mergedThisRound = false
+
+    
     
     var value: Int = 0 {
         //observer: updates the text of the label with the current value of the tile.
@@ -19,11 +21,5 @@ class Tile: CCNode {
             valueLabel.string = "\(value)"
         }
     }
-    
-    
-    func didLoadFromCCB() {
-        value = Int(CCRANDOM_MINUS1_1() + 2) * 2
-    }
-    
-    
+
 }

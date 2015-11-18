@@ -739,7 +739,7 @@
 						<string>Text</string>
 						<key>value</key>
 						<array>
-							<string>0</string>
+							<string>100</string>
 							<false/>
 						</array>
 					</dict>
@@ -1082,8 +1082,6 @@
 						</array>
 					</dict>
 				</array>
-				<key>selected</key>
-				<true/>
 			</dict>
 		</array>
 		<key>customClass</key>
